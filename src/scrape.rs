@@ -103,6 +103,8 @@ async fn scrape_anime_details(url: &str, client: &Client) -> Result<Anime> {
         }
     }
 
+    let ogladajanime_url = make_ogladajanime_url(&title);
+
     Ok(Anime {
         title,
         anime_type,
@@ -111,7 +113,12 @@ async fn scrape_anime_details(url: &str, client: &Client) -> Result<Anime> {
         genres,
         target_groups,
         shinden_url: url.to_owned(),
+        ogladajanime_url,
     })
+}
+
+fn make_ogladajanime_url(title: &str) -> String {
+    format!("https://ogladajanime.pl/search/name/{}", title.replace(" ", "-").trim_end_matches('.'))
 }
 
 fn make_date(date: &str) -> String {

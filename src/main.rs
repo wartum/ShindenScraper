@@ -18,7 +18,7 @@ async fn main() -> Result<()> {
 
 fn save(all_anime: &[Anime]) {
     let mut file = File::create("anime_season.csv").unwrap();
-    _ = file.write_all("Status, Typ, Data emisji, Grupa docelowa, Gatunek, Tytuł, Link do Shinden\n".as_bytes());
+    _ = file.write_all("Status, Typ, Data emisji, Grupa docelowa, Gatunek, Tytuł, Link do Ogladajanime, Link do Shinden\n".as_bytes());
     for anime in all_anime.iter() {
         _ = file.write_all(anime.to_csv().as_bytes());
         _ = file.write_all(b"\n");

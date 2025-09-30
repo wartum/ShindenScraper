@@ -9,6 +9,7 @@ pub struct Anime {
     pub genres: String,
     pub target_groups: String,
     pub shinden_url: String,
+    pub ogladajanime_url: String,
 }
 
 impl PartialOrd for Anime {
@@ -48,14 +49,15 @@ impl Display for Anime {
 impl Anime {
     pub fn to_csv(&self) -> String {
         format!(
-            r##""{}", "{}", "{}", "{}", "{}", "{}", "{}""##,
+            r##""{}", "{}", "{}", "{}", "{}", "{}", "{}", "{}""##,
             self.status,
             self.anime_type,
             self.emmision_date,
             self.target_groups,
             self.genres,
             self.title,
-            self.shinden_url
+            self.ogladajanime_url,
+            self.shinden_url,
         )
     }
 }
