@@ -12,15 +12,18 @@ type Result<T> = std::result::Result<T, Error>;
 async fn main() -> Result<()> {
     let mut all_anime = scrape().await?;
     all_anime.sort();
-    save(&all_anime);
-    Ok(())
+    save(&all_anime)
 }
 
-fn save(all_anime: &[Anime]) {
+fn save(all_anime: &[Anime]) -> Result<()> {
     let mut file = File::create("anime_season.csv").unwrap();
-    _ = file.write_all("Status, Typ, Data emisji, Grupa docelowa, Gatunek, Tytuł, Link do Ogladajanime, Link do Shinden\n".as_bytes());
+    file.write_all("Status, Typ, Data emisji, Grupa docelowa, Gatunek, Tytuł, Link do Ogladajanime, Link do Shinden\n".as_bytes())?;
     for anime in all_anime.iter() {
-        _ = file.write_all(anime.to_csv().as_bytes());
-        _ = file.write_all(b"\n");
+        if anime.anime_type == "TV" {
+            file.write_all(anime.to_csv().as_bytes())?;
+            file.write_all(b"\n")?;
+        }
     }
+
+    Ok(())
 }

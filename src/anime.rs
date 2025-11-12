@@ -34,7 +34,13 @@ impl Display for Anime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{}\n- Status: {}\n- Typ: {}\n- Grupa docelowa: {}\n- Gatunek: {}\n- Data emisji: {}\n- Shinden: {}",
+            r##"{}
+- Status: {}
+- Typ: {}
+- Grupa docelowa: {}
+- Gatunek: {}
+- Data emisji: {}
+- Shinden: {}"##,
             self.title,
             self.status,
             self.anime_type,

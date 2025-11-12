@@ -21,10 +21,8 @@ pub async fn scrape() -> Result<Vec<Anime>> {
     for element in document.select(&selector) {
         let url = format!("https://shinden.pl{}", element.attr("href").unwrap());
         if let Ok(anime) = scrape_anime_details(&url, &client).await {
-            println!("{}\n=====", anime);
-            if anime.anime_type.to_uppercase() == "TV" {
-                all_anime.push(anime);
-            }
+            println!("{anime}\n=====");
+            all_anime.push(anime);
         }
     }
     Ok(all_anime)
@@ -59,10 +57,11 @@ async fn scrape_anime_details(url: &str, client: &Client) -> Result<Anime> {
         .text()
         .await?;
     let document = Html::parse_document(&anime_page_rsp);
+
     let title_selector = Selector::parse("h1.page-title > span.title").unwrap();
     let info_selector = Selector::parse("dl.info-aside-list > dd").unwrap();
     let tags_selector = Selector::parse("ul.tags > li > a.button-with-tip").unwrap();
-    
+
     let mut title_iterator = document.select(&title_selector);
     let mut info_iterator = document.select(&info_selector);
     let tags_iterator = document.select(&tags_selector);
@@ -118,7 +117,10 @@ async fn scrape_anime_details(url: &str, client: &Client) -> Result<Anime> {
 }
 
 fn make_ogladajanime_url(title: &str) -> String {
-    format!("https://ogladajanime.pl/search/name/{}", title.replace(" ", "-").trim_end_matches('.'))
+    format!(
+        "https://ogladajanime.pl/search/name/{}",
+        title.replace(" ", "-").trim_end_matches('.')
+    )
 }
 
 fn make_date(date: &str) -> String {
@@ -140,7 +142,7 @@ mod tests {
         let anime = scrape_anime_details(url, &client).await.unwrap();
         assert_eq!(anime.title, "Boku no Hero Academia: Final Season");
         assert_eq!(anime.anime_type, "TV");
-        assert_eq!(anime.status, "Zapowiedź");
+        assert_eq!(anime.status, "Emitowane");
         assert_eq!(anime.emmision_date, "04.10.2025");
         assert_eq!(anime.genres.trim(), "Fantasy");
         assert_eq!(anime.target_groups.trim(), "Shounen");
