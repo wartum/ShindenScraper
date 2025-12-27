@@ -17,10 +17,10 @@ async fn main() -> Result<()> {
 
 fn save(all_anime: &[Anime]) -> Result<()> {
     let mut file = File::create("anime_season.csv").unwrap();
-    file.write_all("Status, Typ, Data emisji, Grupa docelowa, Gatunek, Tytuł, Link do Ogladajanime, Link do Shinden\n".as_bytes())?;
+    file.write_all(Anime::get_lean_csv_headers().as_bytes())?;
     for anime in all_anime.iter() {
         if anime.anime_type == "TV" {
-            file.write_all(anime.to_csv().as_bytes())?;
+            file.write_all(anime.to_lean_csv().as_bytes())?;
             file.write_all(b"\n")?;
         }
     }

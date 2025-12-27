@@ -52,7 +52,18 @@ impl Display for Anime {
     }
 }
 
+const CSV_HEADERS: &'static str = "Status, Typ, Data emisji, Grupa docelowa, Gatunek, Tytuł, Link do Ogladajanime, Link do Shinden\n";
+const LEAN_CSV_HEADERS: &'static str = "Grupa docelowa, Tytuł, Data emisji, Ogladajanime, Shinden\n";
+
 impl Anime {
+    pub fn get_csv_headers() -> String {
+        return CSV_HEADERS.to_string();
+    }
+
+    pub fn get_lean_csv_headers() -> String {
+        return LEAN_CSV_HEADERS.to_string();
+    }
+
     pub fn to_csv(&self) -> String {
         format!(
             r##""{}", "{}", "{}", "{}", "{}", "{}", "{}", "{}""##,
@@ -62,6 +73,17 @@ impl Anime {
             self.target_groups,
             self.genres,
             self.title,
+            self.ogladajanime_url,
+            self.shinden_url,
+        )
+    }
+
+    pub fn to_lean_csv(&self) -> String {
+        format!(
+            r##""{}", "{}", "{}", "{}", "{}""##,
+            self.target_groups,
+            self.title,
+            self.emmision_date,
             self.ogladajanime_url,
             self.shinden_url,
         )

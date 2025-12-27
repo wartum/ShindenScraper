@@ -71,6 +71,7 @@ async fn scrape_anime_details(url: &str, client: &Client) -> Result<Anime> {
         .ok_or("No title found")?
         .inner_html()
         .trim()
+        .replace(",", "")
         .to_string();
     let anime_type = info_iterator
         .next()
@@ -119,7 +120,10 @@ async fn scrape_anime_details(url: &str, client: &Client) -> Result<Anime> {
 fn make_ogladajanime_url(title: &str) -> String {
     format!(
         "https://ogladajanime.pl/search/name/{}",
-        title.replace(" ", "-").trim_end_matches('.')
+        title
+            .replace(" ", "-")
+            .replace("/", "-")
+            .trim_end_matches('.')
     )
 }
 
