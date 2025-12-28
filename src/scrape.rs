@@ -146,9 +146,9 @@ mod tests {
         let anime = scrape_anime_details(url, &client).await.unwrap();
         assert_eq!(anime.title, "Boku no Hero Academia: Final Season");
         assert_eq!(anime.anime_type, "TV");
-        assert_eq!(anime.status, "Emitowane");
+        assert_eq!(anime.status, "Zakończone");
         assert_eq!(anime.emmision_date, "04.10.2025");
-        assert_eq!(anime.genres.trim(), "Fantasy");
+        assert_eq!(anime.genres.trim(), "Akcja Fantasy");
         assert_eq!(anime.target_groups.trim(), "Shounen");
         assert_eq!(anime.shinden_url, url);
     }
