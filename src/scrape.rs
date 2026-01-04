@@ -38,20 +38,18 @@ fn build_http_client(redirect: bool) -> Result<Client> {
         ),
     );
 
-    if redirect {
-        ClientBuilder::new()
-            .cookie_store(true)
-            .default_headers(headers)
-            .build()
-            .map_err(|e| e.into())
+    let redirect_policy = if redirect {
+        Policy::limited(10)
     } else {
-        ClientBuilder::new()
-            .cookie_store(true)
-            .default_headers(headers)
-            .redirect(Policy::none())
-            .build()
-            .map_err(|e| e.into())
-    }
+        Policy::none()
+    };
+
+    ClientBuilder::new()
+        .cookie_store(true)
+        .default_headers(headers)
+        .redirect(redirect_policy)
+        .build()
+        .map_err(|e| e.into())
 }
 
 impl Scraper {
@@ -150,7 +148,10 @@ impl Scraper {
 
     async fn make_ogladajanime_url(&self, title: &str) -> String {
         let title = title.replace(" ", "-").replace("/", "-");
-        let title: String = title.chars().filter(is_char_allowed_in_url).collect();
+        let title: String = title
+            .chars()
+            .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
+            .collect();
         let url = format!(
             "https://ogladajanime.pl/anime/{}",
             title.to_ascii_lowercase().trim_end_matches('.')
@@ -172,16 +173,11 @@ impl Scraper {
             StatusCode::FOUND => {
                 let location = rsp.headers().get("location").ok_or("No location header")?;
                 let location = location.to_str().unwrap();
-                Ok( location != "/")
+                Ok(location != "/")
             }
             _ => Ok(false),
         }
     }
-}
-
-fn is_char_allowed_in_url(c: &char) -> bool {
-    let blacklisted_chars = ['(', ')', '[', ']', '{', '}', '!', '?', ':', ';', '"', '\''];
-    c.is_ascii() && !blacklisted_chars.contains(c)
 }
 
 fn make_date(date: &str) -> String {
@@ -235,6 +231,12 @@ mod tests {
                 .make_ogladajanime_url("Mato Seihei no Slave 2nd Season")
                 .await,
             "https://ogladajanime.pl/anime/mato-seihei-no-slave-2nd-season"
+        );
+        assert_eq!(
+            scraper
+                .make_ogladajanime_url("Douse Koishite Shimaunda. Season 2")
+                .await,
+            "https://ogladajanime.pl/anime/douse-koishite-shimaunda-season-2"
         );
     }
 
