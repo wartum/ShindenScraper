@@ -1,12 +1,13 @@
 use crate::Result;
 use crate::anime::*;
+use reqwest::redirect::Policy;
 use reqwest::{Client, ClientBuilder, header};
 use scraper::{Html, Selector};
 
 const CURRENT_SEASON_URL: &str = "https://shinden.pl/series/season/current";
 
 pub async fn scrape() -> Result<Vec<Anime>> {
-    let client = build_http_client()?;
+    let client = build_http_client(true)?;
     let all_anime_list_rsp = client
         .get(CURRENT_SEASON_URL)
         .send()
@@ -28,7 +29,7 @@ pub async fn scrape() -> Result<Vec<Anime>> {
     Ok(all_anime)
 }
 
-fn build_http_client() -> Result<Client> {
+fn build_http_client(redirect: bool) -> Result<Client> {
     let mut headers = header::HeaderMap::new();
     headers.insert(
         "Accept-Language",
@@ -41,11 +42,20 @@ fn build_http_client() -> Result<Client> {
         ),
     );
 
-    ClientBuilder::new()
-        .cookie_store(true)
-        .default_headers(headers)
-        .build()
-        .map_err(|e| e.into())
+    if redirect {
+        ClientBuilder::new()
+            .cookie_store(true)
+            .default_headers(headers)
+            .build()
+            .map_err(|e| e.into())
+    } else {
+        ClientBuilder::new()
+            .cookie_store(true)
+            .default_headers(headers)
+            .redirect(Policy::none())
+            .build()
+            .map_err(|e| e.into())
+    }
 }
 
 async fn scrape_anime_details(url: &str, client: &Client) -> Result<Anime> {
@@ -103,7 +113,8 @@ async fn scrape_anime_details(url: &str, client: &Client) -> Result<Anime> {
         }
     }
 
-    let ogladajanime_url = make_ogladajanime_url(&title);
+    let noredirect_client = build_http_client(false)?;
+    let ogladajanime_url = make_ogladajanime_url(&title, &noredirect_client).await;
 
     Ok(Anime {
         title,
@@ -117,14 +128,36 @@ async fn scrape_anime_details(url: &str, client: &Client) -> Result<Anime> {
     })
 }
 
-fn make_ogladajanime_url(title: &str) -> String {
-    format!(
-        "https://ogladajanime.pl/search/name/{}",
-        title
-            .replace(" ", "-")
-            .replace("/", "-")
-            .trim_end_matches('.')
-    )
+fn is_char_allowed_in_url(c: &char) -> bool {
+    let blacklisted_chars = ['(', ')', '[', ']', '{', '}', '!', '?', ':', ';', '"', '\''];
+    c.is_ascii() && !blacklisted_chars.contains(c)
+}
+
+async fn make_ogladajanime_url(title: &str, client: &Client) -> String {
+    let title = title.replace(" ", "-").replace("/", "-");
+    let title: String = title.chars().filter(is_char_allowed_in_url).collect();
+    let url = format!(
+        "https://ogladajanime.pl/anime/{}",
+        title.to_ascii_lowercase().trim_end_matches('.')
+    );
+
+    if let Ok(res) = validate_ogladajanime_url(&url, client).await {
+        if res {
+            return url.to_string();
+        }
+    }
+
+    return "".to_string();
+}
+
+async fn validate_ogladajanime_url(url: &str, client: &Client) -> Result<bool> {
+    let rsp = client.get(url).send().await?;
+
+    if rsp.status() == 200 {
+        return Ok(true);
+    } else {
+        return Ok(false);
+    }
 }
 
 fn make_date(date: &str) -> String {
@@ -142,7 +175,7 @@ mod tests {
     #[tokio::test]
     async fn scrape_anime() {
         let url = "https://shinden.pl/series/68750-boku-no-hero-academia-final-season";
-        let client = build_http_client().unwrap();
+        let client = build_http_client(true).unwrap();
         let anime = scrape_anime_details(url, &client).await.unwrap();
         assert_eq!(anime.title, "Boku no Hero Academia: Final Season");
         assert_eq!(anime.anime_type, "TV");
@@ -151,5 +184,28 @@ mod tests {
         assert_eq!(anime.genres.trim(), "Akcja Fantasy");
         assert_eq!(anime.target_groups.trim(), "Shounen");
         assert_eq!(anime.shinden_url, url);
+    }
+
+    #[tokio::test]
+    async fn make_ogladajanime_url() {
+        let client = build_http_client(false).unwrap();
+
+        assert_eq!(
+            super::make_ogladajanime_url("Fate/strange Fake", &client).await,
+            "https://ogladajanime.pl/anime/fate-strange-fake"
+        );
+        assert_eq!(
+            super::make_ogladajanime_url("[Oshi no Ko] 3rd Season", &client).await,
+            "https://ogladajanime.pl/anime/oshi-no-ko-3rd-season"
+        );
+        assert_eq!(
+            super::make_ogladajanime_url("Cardfight!! Vanguard: Divinez Genma Seisen-hen", &client)
+                .await,
+            "https://ogladajanime.pl/anime/cardfight-vanguard-divinez-genma-seisen-hen"
+        );
+        assert_eq!(
+            super::make_ogladajanime_url("jujutsu-kaisen-3rd-season", &client).await,
+            ""
+        );
     }
 }
